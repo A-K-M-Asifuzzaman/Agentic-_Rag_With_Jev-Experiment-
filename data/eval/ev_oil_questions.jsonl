@@ -1,0 +1,14 @@
+{"id": "q01", "type": "single", "question": "According to the report, by how many million barrels per day could a 300-million EV fleet displace oil demand by 2030?", "must_include": ["4.6"]}
+{"id": "q02", "type": "single", "question": "What share of total global oil demand does transportation account for?", "must_include": ["57"]}
+{"id": "q03", "type": "single", "question": "From what cost per kilowatt-hour to what cost did lithium-ion battery packs fall between 2010 and 2024?", "must_include": ["1,200|1200", "100"]}
+{"id": "q04", "type": "single", "question": "What share of global cobalt supply comes from the Democratic Republic of Congo?", "must_include": ["70"]}
+{"id": "q05", "type": "lexical", "question": "What level of global spare capacity is typically estimated to provide effective insurance against supply shocks?", "must_include": ["2 to 3|2-3"]}
+{"id": "q06", "type": "single", "question": "How much of the direct efficiency savings from EVs does the rebound effect recover?", "must_include": ["10", "30"]}
+{"id": "q07", "type": "multi_hop", "question": "How much oil would EVs displace by 2030 under OPEC's central scenario, and how does that compare with the high-adoption scenario consistent with the IEA Net Zero pathway?", "must_include": ["2 to 3|2-3", "4.6"]}
+{"id": "q08", "type": "multi_hop", "question": "What utilization rate could shared autonomous fleets reach, and what battery pack cost is considered necessary for total cost of ownership parity?", "must_include": ["40", "60"]}
+{"id": "q09", "type": "conflicting", "question": "According to the report, by how much could cumulative EV fleet growth reduce oil demand over the 2030-2050 horizon?", "must_include": ["20 to 30|20-30", "15 to 25|15-25"]}
+{"id": "q10", "type": "graph", "question": "What three systemic constraints does the report's conclusion say limit the oil price dampening effect of EVs?", "must_include": ["opec", "emerging market", "underinvestment|upstream"]}
+{"id": "q11", "type": "unanswerable", "answerable": false, "question": "What does the report forecast for hydrogen fuel-cell truck sales in 2030?"}
+{"id": "q12", "type": "unanswerable", "answerable": false, "question": "What discount rate does the report use in its stranded-asset valuation model?"}
+{"id": "q13", "type": "web", "question": "What is the current weather in Delhi?", "must_include": []}
+{"id": "q14", "type": "direct", "question": "What does the abbreviation ICE stand for in the context of vehicles?", "must_include": ["internal combustion engine"]}
