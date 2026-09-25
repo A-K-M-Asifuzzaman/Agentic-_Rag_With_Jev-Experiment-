@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agentic RAG Trace</title>
+<style>
+  :root { --bg:#f7f7f5; --panel:#fff; --ink:#1c1c1a; --muted:#6b6b66; --line:#e3e3de; --accent:#2f6f4e;
+          --jev:#2f6f4e; --llm:#8a4b12; --route:#3b5b8c; --err:#b3261e; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#141413; --panel:#1d1d1b; --ink:#ecece8; --muted:#9a9a93;
+          --line:#2e2e2b; --accent:#7bc49a; --jev:#7bc49a; --llm:#e0a15e; --route:#8fb0e3; --err:#f2877f; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.5 system-ui, sans-serif; }
+  header { padding:16px; border-bottom:1px solid var(--line); display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  header h1 { font-size:16px; margin:0 12px 0 0; }
+  input[type=text] { flex:1 1 320px; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--ink); }
+  select, button { padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--panel); color:var(--ink); }
+  button { background:var(--accent); color:var(--bg); border-color:var(--accent); cursor:pointer; }
+  main { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap:16px; padding:16px; }
+  @media (max-width: 900px) { main { grid-template-columns: 1fr; } }
+  section { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; min-width:0; }
+  h2 { font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:0 0 8px; }
+  #events { font:12px/1.45 ui-monospace, monospace; max-height:70vh; overflow:auto; margin:0; padding:0; list-style:none; }
+  #events li { padding:2px 0; border-bottom:1px dashed var(--line); overflow-wrap:anywhere; }
+  .jev { color:var(--jev); } .llm { color:var(--llm); } .route { color:var(--route); } .err { color:var(--err); }
+  .scope { color:var(--muted); }
+  #answer { white-space:pre-wrap; min-height:4em; }
+  #metrics { font:12px ui-monospace, monospace; white-space:pre-wrap; color:var(--muted); overflow-wrap:anywhere; }
+  #diagram { overflow:auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Agentic RAG trace</h1>
+  <input id="q" type="text" value="How much have battery pack costs fallen, and what is the current weather in Delhi?" aria-label="Question">
+  <select id="pipeline" aria-label="Pipeline">
+    <option value="hybrid">hybrid (Jev + LLM escalation)</option>
+    <option value="jev">jev</option>
+    <option value="llm">llm</option>
+    <option value="standard">standard RAG</option>
+  </select>
+  <button id="run">Run</button>
+</header>
+<main>
+  <section><h2>Execution events</h2><ul id="events"></ul></section>
+  <section>
+    <h2>Answer</h2><div id="answer"></div>
+    <h2 style="margin-top:16px">Graph (visited nodes highlighted)</h2><div id="diagram"></div>
+    <h2 style="margin-top:16px">Run metrics</h2><div id="metrics"></div>
+  </section>
+</main>
+<script type="module">
+import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+mermaid.initialize({ startOnLoad: false, securityLevel: "strict",
+  theme: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default" });
+
+const $ = (id) => document.getElementById(id);
+let source = null, base = "", visited = new Set(), renders = 0;
+
+async function loadGraph() {
+  base = (await (await fetch(`/api/graph/${$("pipeline").value}`)).json()).mermaid;
+  visited = new Set(); await draw();
+}
+async function draw() {
+  const ids = [...visited];
+  const text = ids.length ? `${base}\n\tclassDef visited fill:#b7e4c7,stroke:#2f6f4e,stroke-width:2px;\n\tclass ${ids.join(",")} visited;` : base;
+  const { svg } = await mermaid.render(`g${renders++}`, text);
+  $("diagram").innerHTML = svg;
+}
+function log(cls, text, scope) {
+  const li = document.createElement("li"); li.className = cls;
+  if (scope) { const s = document.createElement("span"); s.className = "scope"; s.textContent = scope + "/ "; li.append(s); }
+  li.append(document.createTextNode(text)); $("events").append(li); li.scrollIntoView({ block: "nearest" });
+}
+const handlers = {
+  "graph.started": (d) => log("", `graph.started ${d.graph} thread=${d.thread_id}`),
+  "node.started": (d) => {
+    log("", `▶ ${d.node}`, d.scope);
+    const id = d.scope ? `${d.scope}__${d.node}` : d.node;
+    if (base.includes(`\t${id}(`) && !visited.has(id)) { visited.add(id); draw(); }  // skip subgraph containers
+  },
+  "node.completed": (d) => d.error && log("err", `✖ ${d.node}: ${d.error}`, d.scope),
+  "jev.decision": (d) => log("jev", `jev ${d.stage} → ${d.action} (${d.confidence.toFixed(2)})${d.strategy ? " " + d.strategy : ""}`),
+  "llm.decision": (d) => log("llm", `llm ${d.stage} → ${d.action}${d.escalated_from ? " (escalated from " + d.escalated_from + ")" : ""}`),
+  "rule.decision": (d) => log("", `rule ${d.stage} → ${d.action}`),
+  "route.selected": (d) => log("route", `route ${d.stage}: ${d.action} → ${d.target}${d.overridden ? " (guard override of " + d.proposed + ")" : ""}`),
+  "retrieval.started": (d) => log("", `search [${d.strategy}] ${d.query}`, d.scope),
+  "retrieval.completed": (d) => log("", `got ${d.doc_ids.length} docs`, d.scope),
+  "evidence.graded": (d) => log("", `graded ${d.graded}, relevant ${d.relevant}`),
+  "query.rewritten": (d) => log("", `rewrite → ${d.query}`),
+  "query.decomposed": (d) => log("", `subquestions: ${d.subquestions.join(" | ")}`),
+  "llm.call": (d) => log("llm", `llm.call ${d.purpose} ${d.input_tokens}→${d.output_tokens} tok ${d.latency_ms}ms`),
+  "jev.call": (d) => log("jev", `jev.call ${d.purpose} ${d.latency_ms}ms`),
+  "generation.token": (d) => { $("answer").textContent += d.text; },
+  "graph.completed": (d) => { $("answer").textContent = d.answer ?? ""; $("metrics").textContent =
+      JSON.stringify({ citations: d.citations, abstained: d.abstained, evidence_status: d.evidence_status, metrics: d.metrics }, null, 1);
+      log("", "graph.completed"); source.close(); },
+  "graph.error": (d) => { log("err", d.error); source.close(); },
+};
+$("run").onclick = async () => {
+  source?.close(); $("events").replaceChildren(); $("answer").textContent = ""; $("metrics").textContent = "";
+  await loadGraph();
+  source = new EventSource(`/api/stream?${new URLSearchParams({ q: $("q").value, pipeline: $("pipeline").value })}`);
+  for (const [name, fn] of Object.entries(handlers)) source.addEventListener(name, (e) => fn(JSON.parse(e.data)));
+  source.onerror = () => source.close();
+};
+$("pipeline").onchange = loadGraph;
+loadGraph();
+</script>
+</body>
+</html>
