@@ -12,6 +12,8 @@ def test_unanswerable_is_correct_only_when_declined():
     item = {"answerable": False}
     assert score(item, {"answer": "x", "abstained": True})["correct"] is True
     assert score(item, {"answer": "The report does not mention hydrogen trucks."})["correct"] is True
+    for declined in ("They do not state a rate.", "The excerpts do not say.", "It doesn't report one."):
+        assert score(item, {"answer": declined})["correct"] is True
     assert score(item, {"answer": "About 2 million units."})["correct"] is False
 
 

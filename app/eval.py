@@ -20,8 +20,8 @@ from app.retrieval import Retriever
 
 _DECLINE = re.compile(
     r"can't answer|cannot answer|unable to|no information"
-    r"|does not (?:provide|mention|contain|include|specify|state)"
-    r"|doesn't (?:provide|mention|say)|not (?:covered|provided|mentioned|stated)"
+    r"|(?:does not|do not|doesn't|don't) (?:provide|mention|contain|include|specify|state|give|say|report)"
+    r"|not (?:covered|provided|mentioned|stated)"
 )
 
 
@@ -101,9 +101,12 @@ async def run_eval(
     out_dir = Path("runs") / run_id
     out_dir.mkdir(parents=True, exist_ok=True)
     results_path = out_dir / "results.jsonl"
+    by_id = {item["id"]: item for item in items}
     rows = (
         [json.loads(line) for line in results_path.read_text().splitlines()] if results_path.exists() else []
     )
+    # Rescore stored answers so scorer fixes apply to a resumed run without re-querying any model.
+    rows = [r | score(by_id[r["id"]], r) for r in rows if r["id"] in by_id]
     done = {(r["pipeline"], r["id"]) for r in rows}
     retriever = Retriever.load(settings)
 

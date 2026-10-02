@@ -50,12 +50,12 @@ class Settings:
     max_graph_search_attempts: int = 1
     max_verification_attempts: int = 1
 
-    # USD per 1M tokens as (input, output). Jev defaults to 0 because pricing depends on your
-    # TypeSafe plan; set AJEV_JEV_PRICE_IN/OUT so cost comparisons include it.
+    # USD per 1M tokens as (input, output). Jev list price from TypeSafe's launch post: $0.042/MTok input,
+    # output free. Override with AJEV_JEV_PRICE_IN/OUT if your plan differs.
     llm_prices: dict[str, tuple[float, float]] = field(
         default_factory=lambda: {"gpt-5-mini": (0.25, 2.00), "gpt-5": (1.25, 10.00)}
     )
-    jev_price_in: float = 0.0
+    jev_price_in: float = 0.042
     jev_price_out: float = 0.0
 
     @property
