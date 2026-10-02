@@ -50,7 +50,8 @@ uv run ajev serve                          # http://127.0.0.1:8000 live trace UI
 - LLM and Jev call counts, including LLM calls spent on controller decisions
 - tokens, cost and the escalation rate
 
-Rerun with the same `--run-id` to resume an interrupted run.
+Rerun with the same `--run-id` to resume an interrupted run. Resuming also rescores the stored answers with
+the current scorer. Measured results are in [docs/RESULTS.md](docs/RESULTS.md).
 
 The dataset in `data/eval/ev_oil_questions.jsonl` covers single-fact, lexical, multi-hop, conflicting-evidence,
 cross-section, unanswerable, web and direct-knowledge questions about the included report.
@@ -59,8 +60,8 @@ cross-section, unanswerable, web and direct-knowledge questions about the includ
 
 Every field of `app/config.py:Settings` can be overridden as `AJEV_<FIELD>`. Examples are
 `AJEV_ESCALATION_THRESHOLD=0.8`, `AJEV_LLM_MODEL=openai:gpt-5` and `AJEV_MAX_REWRITE_ATTEMPTS=3`.
-Jev pricing depends on your TypeSafe plan. Set `AJEV_JEV_PRICE_IN` and `AJEV_JEV_PRICE_OUT` (USD per 1M tokens)
-so that cost comparisons include it.
+Jev is priced at TypeSafe's list rate ($0.042 per 1M input tokens, output free). Override with
+`AJEV_JEV_PRICE_IN` and `AJEV_JEV_PRICE_OUT` (USD per 1M tokens) if your plan differs.
 
 ## Development
 

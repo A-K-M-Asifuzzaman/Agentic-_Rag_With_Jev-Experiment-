@@ -70,5 +70,6 @@ class AgentPolicy(Protocol):
     async def verify_answer(self, query: str, answer: str, evidence: list[Doc], meter: Meter) -> Decision: ...
 
 
-def passages(docs: list[Doc], limit: int = 700) -> list[dict[str, str]]:
-    return [{"id": d["id"], "text": d["text"][:limit]} for d in docs]
+def passages(docs: list[Doc]) -> list[dict[str, str]]:
+    # Untruncated: controllers must judge exactly the text the generator answers from.
+    return [{"id": d["id"], "text": d["text"]} for d in docs]

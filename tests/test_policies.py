@@ -31,9 +31,11 @@ async def test_route_query_maps_choices_and_takes_min_confidence():
 
 
 async def test_verify_maps_noul_probability_to_action_and_confidence():
-    service, _ = jev(lambda s, name: {"type": "noul", "noul": 0.2})
-    d = await JevAgentPolicy(service, "corpus").verify_answer("q", "a", [doc("x")], Meter())
+    service, client = jev(lambda s, name: {"type": "noul", "noul": 0.2})
+    long_text = "x" * 850 + " 4.6 mb/d"  # the supporting fact sits at the end of a full-size chunk
+    d = await JevAgentPolicy(service, "corpus").verify_answer("q", "a", [doc("x", long_text)], Meter())
     assert d["action"] == "RETRY" and abs(d["confidence"] - 0.6) < 1e-9
+    assert client.requests[0]["state"]["evidence"][0]["text"] == long_text
 
 
 async def test_hybrid_regrades_only_uncertain_passages_with_llm():
